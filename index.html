@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Fox Log London</title>
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🦊%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/dist/maplibre-gl.css"
+    integrity="sha384-Nq6PQ+9vJPvw7U/VfDELyrWoGQMsy0gi6QShhaSrGzkpF5KkM40csg2leky+YMTd" crossorigin="anonymous">
+  <style>
+    :root {
+      --bg: #EEF1EF;
+      --surface: #FFFFFF;
+      --ink: #16212B;
+      --muted: #56636E;
+      --line: #D0D8D4;
+      --fox: #C93F08;
+      --fox-soft: #FBE3D6;
+      --fox-ink: #FFFFFF;
+      --teal: #0E5A58;
+      --danger: #B42318;
+      --ok: #0B6B3A;
+      --sad: #6B7C8A;
+      --sad-soft: #E4E9ED;
+      --font-head: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+      --font-body: "Public Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0E151C;
+        --surface: #17212B;
+        --ink: #E8EEF2;
+        --muted: #9AA8B3;
+        --line: #2A3743;
+        --fox: #FF8A4C;
+        --fox-soft: #3A2418;
+        --fox-ink: #1A0F08;
+        --teal: #5ED0C8;
+        --danger: #FF8E83;
+        --ok: #6EDC9C;
+        --sad: #9AA8B3;
+        --sad-soft: #243240;
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --bg: #0E151C;
+      --surface: #17212B;
+      --ink: #E8EEF2;
+      --muted: #9AA8B3;
+      --line: #2A3743;
+      --fox: #FF8A4C;
+      --fox-soft: #3A2418;
+      --fox-ink: #1A0F08;
+      --teal: #5ED0C8;
+      --danger: #FF8E83;
+      --ok: #6EDC9C;
+      --sad: #9AA8B3;
+      --sad-soft: #243240;
+    }
+
+    html {
+      scroll-padding-top: env(safe-area-inset-top, 0px);
+      color-scheme: light dark
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 400 16px/1.5 var(--font-body);
+      -webkit-text-size-adjust: 100%
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+      color: inherit
+    }
+
+    :focus-visible {
+      outline: 3px solid var(--teal);
+      outline-offset: 2px
+    }
+
+    .app {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 18px 16px 48px
+    }
+
+    header.top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 10px 24px;
+      padding: 6px 2px 18px
+    }
+
+    h1 {
+      font: 700 clamp(1.7rem, 3.2vw, 2.5rem)/1.05 var(--font-head);
+      letter-spacing: -.02em;
+      margin: 0
+    }
+
+    .tag {
+      margin: 6px 0 0;
+      color: var(--muted);
+      max-width: 56ch
+    }
+
+    .count {
+      font: 500 .95rem var(--font-body);
+      color: var(--muted);
+      text-align: right
+    }
+
+    .count b {
+      font: 700 1.6rem var(--font-head);
+      color: var(--fox);
+      display: block;
+      line-height: 1
+    }
+
+    .mode {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--teal);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin: 0 0 18px;
+      font-size: .92rem;
+      color: var(--muted)
+    }
+
+    .mode strong {
+      color: var(--ink)
+    }
+
+    .mode.demo {
+      border-left-color: var(--danger)
+    }
+
+    .grid {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: minmax(0, 1fr)
+    }
+
+    @media (min-width:980px) {
+      .grid {
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+        align-items: start
+      }
+
+      .mapcol {
+        position: sticky;
+        top: 16px
+      }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px
+    }
+
+    .mapcard {
+      padding: 12px
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px
+    }
+
+    .tab {
+      border: 1px solid var(--line);
+      background: var(--bg);
+      border-radius: 999px;
+      padding: 7px 14px;
+      cursor: pointer;
+      font-weight: 500
+    }
+
+    .tab[aria-pressed="true"] {
+      background: var(--ink);
+      color: var(--surface);
+      border-color: var(--ink);
+      font-weight: 600
+    }
+
+    .tabs select {
+      width: auto;
+      min-width: 200px;
+      flex: 1 1 200px;
+      max-width: 320px
+    }
+
+    .tabs select[hidden] {
+      display: none
+    }
+
+    .maptools {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr;
+      margin-bottom: 10px
+    }
+
+    @media (min-width:560px) {
+      .maptools {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr)
+      }
+    }
+
+    .maptools label {
+      display: block;
+      font-size: .82rem;
+      color: var(--muted);
+      margin-bottom: 2px
+    }
+
+    .row {
+      display: flex;
+      gap: 6px
+    }
+
+    .row>* {
+      min-width: 0
+    }
+
+    select,
+    input[type=text],
+    input[type=datetime-local],
+    textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 10px
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 84px
+    }
+
+    .mapwrap {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      height: clamp(340px, 54vh, 640px);
+      background: #E6ECE8
+    }
+
+    @media (min-width:980px) {
+      .mapwrap {
+        height: calc(100vh - 340px);
+        min-height: 420px
+      }
+    }
+
+    #map {
+      position: absolute;
+      inset: 0
+    }
+
+    .mapwrap::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 14px;
+      height: 14px;
+      margin: -7px 0 0 -7px;
+      pointer-events: none;
+      opacity: .5;
+      background: linear-gradient(#16212B, #16212B) center/100% 2px no-repeat, linear-gradient(#16212B, #16212B) center/2px 100% no-repeat
+    }
+
+    .maplibregl-canvas-container.maplibregl-interactive {
+      cursor: crosshair
+    }
+
+    .maplibregl-canvas-container.maplibregl-interactive:active {
+      cursor: grabbing
+    }
+
+    .pinmarker {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--fox);
+      border: 3px solid #fff;
+      box-shadow: 0 0 0 2px #16212B, 0 2px 6px rgba(0, 0, 0, .4);
+      cursor: grab
+    }
+
+    .pinmarker:active {
+      cursor: grabbing
+    }
+
+    .tilenote {
+      margin: 8px 0 0;
+      font-size: .88rem;
+      color: var(--danger)
+    }
+
+    .tilenote[hidden] {
+      display: none
+    }
+
+    .popup {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 56px;
+      z-index: 3;
+      max-height: calc(100% - 20px);
+      overflow: auto;
+      background: #fff;
+      color: #16212B;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 34px 10px 12px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, .18);
+      font-size: .9rem
+    }
+
+    .popup[hidden] {
+      display: none
+    }
+
+    .popup .x {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      border: 0;
+      background: transparent;
+      color: #16212B;
+      width: 32px;
+      height: 32px;
+      font-size: 1.1rem;
+      cursor: pointer
+    }
+
+    .popup .btn {
+      background: #fff;
+      color: #16212B
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 16px;
+      align-items: center;
+      margin-top: 10px;
+      font-size: .85rem;
+      color: var(--muted)
+    }
+
+    .legend span.k {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .dot {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 1px var(--line)
+    }
+
+    .dot.o {
+      background: #F58220
+    }
+
+    .dot.s {
+      background: #6B7C8A
+    }
+
+    .legend img {
+      width: 20px;
+      height: 20px
+    }
+
+    .legend label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer
+    }
+
+    .datamsg {
+      margin: 8px 0 0;
+      font-size: .9rem;
+      color: var(--muted)
+    }
+
+    .datamsg.bad {
+      color: var(--danger)
+    }
+
+    .datamsg[hidden] {
+      display: none
+    }
+
+    .readout {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 14px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px
+    }
+
+    .coords {
+      font: 500 .95rem ui-monospace, SFMono-Regular, Menlo, monospace
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: .85rem
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-weight: 500
+    }
+
+    .btn:hover {
+      border-color: var(--teal)
+    }
+
+    .btn.primary {
+      background: var(--fox);
+      color: var(--fox-ink);
+      border-color: var(--fox);
+      font: 700 1.05rem var(--font-head);
+      padding: 13px 18px;
+      width: 100%
+    }
+
+    .btn.primary:disabled {
+      opacity: .6;
+      cursor: progress
+    }
+
+    .btn.small {
+      padding: 6px 10px;
+      font-size: .85rem
+    }
+
+    .btn[disabled] {
+      opacity: .6;
+      cursor: default
+    }
+
+    .btn[hidden] {
+      display: none
+    }
+
+    form.card {
+      padding: 18px 18px 20px
+    }
+
+    fieldset {
+      border: 0;
+      margin: 0 0 20px;
+      padding: 0;
+      min-width: 0
+    }
+
+    legend,
+    .lab {
+      font: 700 1.05rem var(--font-head);
+      padding: 0;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: baseline;
+      gap: 8px
+    }
+
+    .num {
+      display: inline-grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: var(--surface);
+      font: 700 .8rem var(--font-body);
+      flex: none
+    }
+
+    .opt {
+      font: 400 .82rem var(--font-body);
+      color: var(--muted)
+    }
+
+    .err {
+      color: var(--danger);
+      font-size: .88rem;
+      margin: 6px 0 0
+    }
+
+    .err:empty {
+      display: none
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px
+    }
+
+    .chip {
+      position: relative
+    }
+
+    .chip input {
+      position: absolute;
+      opacity: 0;
+      inset: 0;
+      margin: 0;
+      cursor: pointer
+    }
+
+    .chip span {
+      display: inline-block;
+      padding: 7px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--bg);
+      font-size: .92rem
+    }
+
+    .chip input:checked+span {
+      background: var(--fox-soft);
+      border-color: var(--fox);
+      color: var(--ink);
+      font-weight: 600
+    }
+
+    .chip input:focus-visible+span {
+      outline: 3px solid var(--teal);
+      outline-offset: 2px
+    }
+
+    .chip.add button {
+      all: unset;
+      cursor: pointer;
+      display: inline-block;
+      padding: 5px 10px;
+      border: 1px dashed var(--line);
+      border-radius: 999px;
+      font-size: .85rem;
+      color: var(--muted)
+    }
+
+    .chip.add button:hover {
+      border-color: var(--teal);
+      color: var(--ink)
+    }
+
+    .chip.add button:focus-visible {
+      outline: 3px solid var(--teal);
+      outline-offset: 2px
+    }
+
+    #otherWrap {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--bg)
+    }
+
+    #otherWrap[hidden] {
+      display: none
+    }
+
+    .sadrow {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-top: 10px;
+      font-size: .9rem;
+      cursor: pointer
+    }
+
+    .sadrow input {
+      margin-top: 4px;
+      width: 18px;
+      height: 18px;
+      flex: none
+    }
+
+    .photo-drop {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap
+    }
+
+    .photo-drop img {
+      width: 96px;
+      height: 96px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--line)
+    }
+
+    .photo-drop img[hidden] {
+      display: none
+    }
+
+    .hp {
+      position: absolute;
+      left: -9999px;
+      width: 1px;
+      height: 1px;
+      overflow: hidden
+    }
+
+    .status {
+      margin-top: 12px;
+      font-weight: 600;
+      min-height: 1.4em
+    }
+
+    .status.ok {
+      color: var(--ok)
+    }
+
+    .status.bad {
+      color: var(--danger)
+    }
+
+    .log {
+      margin-top: 28px
+    }
+
+    .log h2 {
+      font: 700 1.4rem var(--font-head);
+      margin: 0 0 4px;
+      letter-spacing: -.01em
+    }
+
+    .loghead {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 12px
+    }
+
+    .dl {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center
+    }
+
+    .list {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))
+    }
+
+    .item {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px
+    }
+
+    .det {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-start
+    }
+
+    .detbody {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-start;
+      width: 100%
+    }
+
+    .when {
+      font-weight: 600
+    }
+
+    .rel {
+      color: var(--muted);
+      font-weight: 400;
+      font-size: .88rem
+    }
+
+    .beh {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px
+    }
+
+    .beh span {
+      background: var(--fox-soft);
+      border-radius: 999px;
+      padding: 2px 9px;
+      font-size: .82rem;
+      color: var(--ink)
+    }
+
+    .popup .beh span {
+      color: #16212B
+    }
+
+    .det p {
+      margin: 0;
+      font-size: .93rem
+    }
+
+    .det img {
+      width: 100%;
+      max-height: 220px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--line)
+    }
+
+    .sadnote {
+      background: var(--sad-soft);
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: .88rem
+    }
+
+    .popup .sadnote {
+      color: #16212B
+    }
+
+    .item .foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-top: auto
+    }
+
+    .empty {
+      padding: 28px;
+      text-align: center;
+      color: var(--muted)
+    }
+
+    .more {
+      display: block;
+      margin: 14px auto 0
+    }
+
+    .sr {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap
+    }
+
+    @media (prefers-reduced-motion:reduce) {
+      * {
+        transition: none !important;
+        scroll-behavior: auto !important
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header class="top">
+      <div>
+        <h1>Fox Log London</h1>
+        <p class="tag">Saw a fox? Pin where, say when, and tell us what it was up to. Every sighting helps us see where
+          London’s foxes live and how they behave.</p>
+      </div>
+      <div class="count" aria-live="polite"><b id="total">0</b><span id="totalLabel">sightings in the last 7 days</span>
+      </div>
+    </header>
+
+    <div class="mode" id="mode" role="status"></div>
+
+    <noscript>
+      <p class="err" style="display:block">This page needs JavaScript to show the map and save sightings.</p>
+    </noscript>
+
+    <div class="grid">
+      <section class="mapcol" aria-label="Sightings map">
+        <div class="card mapcard">
+          <div class="tabs">
+            <button type="button" class="tab" id="tabLive" aria-pressed="true">Last 7 days</button>
+            <button type="button" class="tab" id="tabArchive" aria-pressed="false">Monthly archive</button>
+            <label class="sr" for="monthSel">Choose a month</label>
+            <select id="monthSel" hidden></select>
+          </div>
+          <div class="maptools">
+            <div>
+              <label for="jump">Jump to a London fox haunt</label>
+              <select id="jump">
+                <option value="">Choose a place…</option>
+              </select>
+            </div>
+            <div>
+              <label for="pcIn">Or find a postcode (e.g. SW1A 1AA)</label>
+              <div class="row"><input type="text" id="pcIn" placeholder="Postcode" autocomplete="postal-code"
+                  autocapitalize="characters" maxlength="10"><button type="button" class="btn" id="pcGo">Find</button>
+              </div>
+            </div>
+          </div>
+          <p class="hint" id="pcMsg" role="status" style="margin:0 0 10px" hidden></p>
+          <div class="mapwrap" id="mapwrap">
+            <div id="map"
+              aria-label="Map of London fox sightings. Drag to move, scroll or pinch to zoom, tap or click an empty spot to drop the fox pin. Drag the pin to fine-tune it.">
+            </div>
+            <div class="popup" id="popup" hidden></div>
+          </div>
+          <p class="tilenote" id="tilenote" hidden></p>
+          <div class="legend" id="legend">
+            <span class="k"><span class="dot o"></span>Sighting</span>
+            <span class="k"><img id="legendFox" alt="" width="20" height="20">Logged by you on this device</span>
+            <label><input type="checkbox" id="showSad" checked><span class="dot s"></span>Sad events</label>
+          </div>
+          <p class="datamsg" id="dataMsg" role="status" hidden></p>
+          <div class="readout">
+            <div>
+              <div class="coords" id="coords">No pin yet</div>
+              <div class="hint" id="pinhint">Tap the map where you saw the fox. Zoom in to street level for a pin within
+                about 5 m.</div>
+            </div>
+            <div class="row">
+              <button type="button" class="btn small" id="allLondon">Show all London</button>
+              <button type="button" class="btn small" id="centrePin">Pin at map centre</button>
+            </div>
+          </div>
+          <p class="err" id="errLoc" role="alert"></p>
+        </div>
+      </section>
+
+      <section aria-label="Record a sighting">
+        <form class="card" id="form" novalidate>
+          <fieldset>
+            <legend><span class="num">1</span>Where was it?</legend>
+            <div class="hint" id="locSummary">Drop a pin on the map. The ring around it shows roughly 5 m.</div>
+          </fieldset>
+
+          <fieldset>
+            <legend><span class="num">2</span><label for="when" style="font:inherit">When did you see it?</label>
+            </legend>
+            <div class="row">
+              <input type="datetime-local" id="when" required>
+              <button type="button" class="btn" id="nowBtn">Now</button>
+            </div>
+            <p class="err" id="errWhen" role="alert"></p>
+          </fieldset>
+
+          <fieldset>
+            <legend><span class="num">3</span>What was the fox doing? <span class="opt">choose any that apply</span>
+            </legend>
+            <div class="chips" id="behChips"></div>
+            <div id="otherWrap" hidden>
+              <label for="otherBeh" style="display:block;font-size:.9rem;margin-bottom:4px">Tell us what you saw</label>
+              <input type="text" id="otherBeh" maxlength="120"
+                placeholder="e.g. injured on the roadside, or something else">
+              <label class="sadrow"><input type="checkbox" id="sadChk"><span>This is a sad event, for example a fox that
+                  has died. Details and photos will stay hidden from other visitors unless they choose to see
+                  them.</span></label>
+            </div>
+            <p class="err" id="errBeh" role="alert"></p>
+          </fieldset>
+
+          <fieldset>
+            <legend><span class="num">4</span>Add a photo <span class="opt">optional</span></legend>
+            <div class="photo-drop">
+              <input type="file" id="photoIn" accept="image/*" class="sr" tabindex="-1">
+              <button type="button" class="btn" id="photoBtn">Choose or take a photo</button>
+              <img id="photoPrev" alt="Preview of your fox photo" hidden>
+              <button type="button" class="btn small" id="photoRm" hidden>Remove photo</button>
+            </div>
+            <p class="hint" style="margin:6px 0 0">Photos are shrunk before saving, and any location data inside the
+              photo is removed.</p>
+            <p class="err" id="errPhoto" role="alert"></p>
+          </fieldset>
+
+          <fieldset>
+            <legend><span class="num">5</span><label for="desc" style="font:inherit">What did it look like?</label>
+              <span class="opt">optional</span>
+            </legend>
+            <textarea id="desc" maxlength="400"
+              placeholder="e.g. White tip on the tail, big ears, a bit thin"></textarea>
+            <div class="chips" id="descChips" style="margin-top:8px" aria-label="Quick descriptions"></div>
+          </fieldset>
+
+          <div class="hp" aria-hidden="true"><label>Leave this empty <input type="text" id="website" tabindex="-1"
+                autocomplete="off"></label></div>
+
+          <button type="submit" class="btn primary" id="submit">Log this fox</button>
+          <p class="hint" style="margin:8px 0 0">Sightings are public. Please don’t include names, addresses or other
+            personal details.</p>
+          <div class="status" id="status" role="status" aria-live="polite"></div>
+        </form>
+      </section>
+    </div>
+
+    <section class="log" aria-label="Sightings list">
+      <div class="loghead">
+        <div>
+          <h2 id="listTitle">Last 7 days</h2>
+          <div class="hint" id="listNote"></div>
+        </div>
+        <div class="dl" id="dl" hidden>
+          <span class="hint">Download this map:</span>
+          <button type="button" class="btn small" id="dlPng">Map image (PNG)</button>
+          <button type="button" class="btn small" id="dlGeo">GeoJSON</button>
+          <button type="button" class="btn small" id="dlCsv">CSV</button>
+        </div>
+      </div>
+      <div class="list" id="list"></div>
+      <button type="button" class="btn more" id="moreBtn" hidden>Show more</button>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/dist/maplibre-gl.js"
+    integrity="sha384-/L1njH4bbgNt9Uk3HwJ272N9fxJzRBQCxhtwGkZiqgl+Nxpq2ETUNZhNMNV1RgyW"
+    crossorigin="anonymous"></script>
+  <script>
+    (function () {
+      'use strict';
+      var $ = function (id) { return document.getElementById(id) };
+
+      /* =====================================================================
+         SETTINGS: paste your Supabase details here (see the setup steps).
+         Leave both empty to try the page in demo mode (saves on this device only).
+         The publishable key is designed to be public. NEVER paste a secret key here.
+         ===================================================================== */
+      var SUPABASE_URL = 'https://bkjgfahmnumtpldvbbsr.supabase.co/rest/v1/';   // e.g. 'https://abcdefgh.supabase.co'
+      var SUPABASE_KEY = 'sb_publishable_AxFfjd3Hw5LIzmkKb9IC0w_wDquu0fV';   // e.g. 'sb_publishable_...'
+
+      var LIVE = !!(SUPABASE_URL && SUPABASE_KEY);
+      var MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
+      var ORANGE = '#F58220', GREY = '#6B7C8A', FOXCOL = '#C93F08';
+      var LONDON = { lat: [51.28, 51.70], lng: [-0.52, 0.34] };
+      var DAY = 864e5;
+      var BEHAVIOURS = ['Trotting or walking', 'Foraging or eating', 'Raiding bins or bags', 'Resting or sleeping', 'Playing', 'Hunting or stalking', 'Calling (barks or screams)', 'Crossing a road', 'Courting or mating', 'With cubs', 'Being fed by people', 'Looks injured or unwell', 'Other'];
+      var DESC_QUICK = ['White tail tip', 'Big ears', 'Very bushy tail', 'Dark legs', 'Thin or scruffy', 'Grey-ish coat', 'Missing patches of fur', 'Cub'];
+      var LANDMARKS = [
+        ['Hyde Park', 51.5073, -0.1657, 15], ['Regent’s Park', 51.5313, -0.1570, 15], ['Hampstead Heath', 51.5608, -0.1630, 15],
+        ['Richmond Park', 51.4430, -0.2740, 14.5], ['Wimbledon Common', 51.4380, -0.2330, 15], ['Greenwich Park', 51.4769, -0.0005, 15.5],
+        ['Victoria Park', 51.5362, -0.0402, 15], ['Battersea Park', 51.4793, -0.1568, 15.5], ['Finsbury Park', 51.5703, -0.1065, 15.5],
+        ['Clapham Common', 51.4608, -0.1486, 15.5], ['Brockwell Park', 51.4501, -0.1054, 15.5], ['Tower Bridge', 51.5055, -0.0754, 16], ['Big Ben', 51.5007, -0.1246, 16]
+      ];
+      var SAD_RE = /\b(dead|died|death|deceased|killed|road[\s-]?kill|run over|hit by (a )?(car|vehicle|van|lorry|bus)|corpse|carcass|euthanis\w*|put down)\b/i;
+      var DEMO_KEY = 'foxlog.demo.v2', MINE_KEY = 'foxlog.mine.v1';
+      var PAGE = 40;
+
+      /* ---------- state ---------- */
+      var pin = null, selectedId = null, shown = PAGE;
+      var records = [], view = { mode: 'live', idx: 0 }, loadToken = 0;
+      var map = null, mapReady = false, pinMarker = null, sadVisible = true;
+      var photoData = '', sadTouched = false;
+      var photoCache = {};
+      var MONTHS = monthOptions();
+
+      /* ---------- helpers ---------- */
+      function pad(n) { return String(n).padStart(2, '0') }
+      function toLocalInput(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) }
+      function fmtWhen(ts) { return new Date(ts).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }
+      function fmtDate(d) { return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) }
+      function rel(ts) {
+        var s = (Date.now() - ts) / 1000;
+        if (s < 90) return 'just now'; if (s < 3600) return Math.round(s / 60) + ' min ago';
+        if (s < 86400) return Math.round(s / 3600) + ' h ago'; if (s < 86400 * 14) return Math.round(s / 86400) + ' days ago';
+        return '';
+      }
+      function inLondon(lat, lng) { return lat >= LONDON.lat[0] && lat <= LONDON.lat[1] && lng >= LONDON.lng[0] && lng <= LONDON.lng[1] }
+      function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e }
+      function monthOptions() {
+        var now = new Date(), out = [];
+        for (var i = 0; i <= 12; i++) {
+          var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          out.push({
+            y: d.getFullYear(), m: d.getMonth(), current: i === 0,
+            label: d.toLocaleString('en-GB', { month: 'long', year: 'numeric' }),
+            expires: new Date(d.getFullYear(), d.getMonth() + 13, 0)
+          });
+        }
+        return out;
+      }
+      function normalize(r) {
+        if (!r || typeof r !== 'object') return null;
+        var ts = typeof r.ts === 'number' ? r.ts : Date.parse(r.sighted_at), lat = +r.lat, lng = +r.lng;
+        if (!isFinite(ts) || !isFinite(lat) || !isFinite(lng) || !inLondon(lat, lng) || !r.id) return null;
+        var b = Array.isArray(r.behaviours) ? r.behaviours.filter(function (x) { return typeof x === 'string' }).slice(0, 13).map(function (x) { return x.slice(0, 60) }) : [];
+        var d = typeof r.description === 'string' ? r.description : (typeof r.desc === 'string' ? r.desc : '');
+        return { id: String(r.id), ts: ts, lat: lat, lng: lng, behaviours: b, other: typeof r.other === 'string' ? r.other.slice(0, 120) : '', desc: d.slice(0, 400), sad: !!r.sad, hasPhoto: !!(r.has_photo || r.hasPhoto) };
+      }
+      function safeJSON(key, def) { try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? def : v } catch (e) { return def } }
+      function safeSave(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); return true } catch (e) { return false } }
+      var mine = (function () { var a = safeJSON(MINE_KEY, []), o = {}; (Array.isArray(a) ? a : []).forEach(function (i) { o[String(i)] = 1 }); return o })();
+      function saveMine() { safeSave(MINE_KEY, Object.keys(mine).slice(-500)) }
+
+      /* ---------- data layer: Supabase (REST) or demo mode ---------- */
+      function sbFetch(path, opts) {
+        opts = opts || {};
+        var h = { apikey: SUPABASE_KEY };
+        if (SUPABASE_KEY.indexOf('eyJ') === 0) h.Authorization = 'Bearer ' + SUPABASE_KEY;   /* legacy anon keys only */
+        for (var k in (opts.headers || {})) h[k] = opts.headers[k];
+        opts.headers = h;
+        return fetch(SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/' + path, opts).then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r;
+        });
+      }
+      function demoAll() { var a = safeJSON(DEMO_KEY, []); return Array.isArray(a) ? a : [] }
+      function fetchRange(from, to) {
+        if (!LIVE) {
+          return Promise.resolve(demoAll().filter(function (r) { return r.ts >= from && r.ts < to }).map(normalize).filter(Boolean));
+        }
+        var base = 'sightings?select=id,sighted_at,lat,lng,behaviours,other,description,sad,has_photo'
+          + '&sighted_at=gte.' + encodeURIComponent(new Date(from).toISOString())
+          + '&sighted_at=lt.' + encodeURIComponent(new Date(to).toISOString())
+          + '&order=sighted_at.desc,id.desc', out = [], size = 1000, page = 0;
+        function next() {
+          return sbFetch(base + '&limit=' + size + '&offset=' + (page * size)).then(function (r) { return r.json() }).then(function (rows) {
+            out = out.concat(rows);
+            if (rows.length === size && out.length < 20000) { page++; return next() }
+            return out;
+          });
+        }
+        return next().then(function (rows) { return rows.map(normalize).filter(Boolean) });
+      }
+      function addRecord(rec) {
+        if (!LIVE) {
+          var id = 'D' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), all = demoAll();
+          all.push({ id: id, ts: rec.ts, lat: rec.lat, lng: rec.lng, behaviours: rec.behaviours, other: rec.other, desc: rec.desc, sad: rec.sad, hasPhoto: !!rec.photo, photo: rec.photo || '' });
+          if (!safeSave(DEMO_KEY, all)) return Promise.reject(new Error('storage'));
+          return Promise.resolve(id);
+        }
+        var body = { sighted_at: new Date(rec.ts).toISOString(), lat: rec.lat, lng: rec.lng, behaviours: rec.behaviours, other: rec.other || null, description: rec.desc || null, sad: rec.sad };
+        if (rec.photo) body.photo = rec.photo;
+        return sbFetch('sightings?select=id', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'return=representation' }, body: JSON.stringify(body) })
+          .then(function (r) { return r.json() }).then(function (rows) { return rows && rows[0] && rows[0].id });
+      }
+      function getPhoto(id) {
+        if (photoCache[id]) return Promise.resolve(photoCache[id]);
+        var p;
+        if (!LIVE) { var r = demoAll().filter(function (x) { return String(x.id) === id })[0]; p = Promise.resolve(r && r.photo) }
+        else p = sbFetch('sightings?select=photo&id=eq.' + encodeURIComponent(id)).then(function (r) { return r.json() }).then(function (rows) { return rows[0] && rows[0].photo });
+        return p.then(function (src) {
+          if (typeof src !== 'string' || src.indexOf('data:image/jpeg;base64,') !== 0) return '';
+          photoCache[id] = src; return src;
+        });
+      }
+
+      /* ---------- fox-head icon ---------- */
+      function drawFox(size) {
+        var c = document.createElement('canvas'); c.width = c.height = size;
+        var x = c.getContext('2d'), s = size / 64; x.scale(s, s);
+        x.lineJoin = 'round';
+        var head = new Path2D('M8 6 L24 18 Q32 15 40 18 L56 6 L58 34 Q56 52 32 60 Q8 52 6 34 Z');
+        x.lineWidth = 6; x.strokeStyle = '#ffffff'; x.stroke(head);
+        x.fillStyle = '#E8590C'; x.fill(head);
+        x.fillStyle = '#4A2410';
+        x.beginPath(); x.moveTo(12, 12); x.lineTo(22, 20); x.lineTo(13, 26); x.closePath(); x.fill();
+        x.beginPath(); x.moveTo(52, 12); x.lineTo(42, 20); x.lineTo(51, 26); x.closePath(); x.fill();
+        x.fillStyle = '#FFF3E6';
+        x.beginPath(); x.moveTo(8, 38); x.quadraticCurveTo(22, 40, 32, 36); x.quadraticCurveTo(42, 40, 56, 38); x.quadraticCurveTo(48, 52, 32, 59); x.quadraticCurveTo(16, 52, 8, 38); x.closePath(); x.fill();
+        x.fillStyle = '#1B1B1B';
+        x.beginPath(); x.ellipse(22, 31, 2.6, 3.2, 0, 0, 6.2832); x.fill();
+        x.beginPath(); x.ellipse(42, 31, 2.6, 3.2, 0, 0, 6.2832); x.fill();
+        x.beginPath(); x.arc(32, 56, 3.4, 0, 6.2832); x.fill();
+        return c;
+      }
+      try { $('legendFox').src = drawFox(40).toDataURL() } catch (e) { }
+
+      /* ---------- map ---------- */
+      function mapFail(msg) { var n = $('tilenote'); n.textContent = msg; n.hidden = false }
+      function emptyFC() { return { type: 'FeatureCollection', features: [] } }
+      function ringFC(lat, lng, r) {
+        var pts = [], k = 64, cl = Math.cos(lat * Math.PI / 180);
+        for (var i = 0; i <= k; i++) { var a = i / k * 2 * Math.PI; pts.push([lng + (r * Math.cos(a)) / (111320 * cl), lat + (r * Math.sin(a)) / 111320]) }
+        return { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [pts] } }] };
+      }
+      function setRing(lat, lng) {
+        if (!mapReady) return;
+        var s = map.getSource('pinring'); if (!s) return;
+        s.setData(lat == null ? emptyFC() : ringFC(lat, lng, 5));
+      }
+      function sightingsFC() {
+        return {
+          type: 'FeatureCollection', features: records.map(function (it) {
+            return { type: 'Feature', properties: { id: it.id, sad: it.sad ? 1 : 0, mine: mine[it.id] ? 1 : 0 }, geometry: { type: 'Point', coordinates: [it.lng, it.lat] } };
+          })
+        };
+      }
+      function syncSightings() {
+        if (!mapReady) return;
+        var s = map.getSource('sightings'); if (!s) return;
+        s.setData(sightingsFC());
+        map.setFilter('sel-ring', ['==', ['get', 'id'], selectedId || '']);
+      }
+      function syncPin() {
+        if (!map) return;
+        if (!pin) { if (pinMarker) { pinMarker.remove(); pinMarker = null } setRing(null); return }
+        if (!pinMarker) {
+          var d = document.createElement('div'); d.className = 'pinmarker';
+          d.setAttribute('aria-label', 'Your fox pin. Drag to adjust.');
+          pinMarker = new maplibregl.Marker({ element: d, draggable: true }).setLngLat([pin.lng, pin.lat]).addTo(map);
+          pinMarker.on('drag', function () { var l = pinMarker.getLngLat(); setRing(l.lat, l.lng) });
+          pinMarker.on('dragend', function () { var l = pinMarker.getLngLat(); setPin(l.lat, l.lng) });
+        } else pinMarker.setLngLat([pin.lng, pin.lat]);
+        setRing(pin.lat, pin.lng);
+      }
+      function initMap() {
+        if (!window.maplibregl) { mapFail('The map library didn’t load. Check your connection and reload the page.'); return }
+        try {
+          map = new maplibregl.Map({
+            container: 'map', style: MAP_STYLE, center: [-0.1278, 51.5074], zoom: 10.5, minZoom: 8, maxZoom: 20,
+            maxBounds: [[-0.8, 51.1], [0.7, 51.9]], dragRotate: false, pitchWithRotate: false,
+            attributionControl: { compact: true }, canvasContextAttributes: { preserveDrawingBuffer: true }
+          });
+        } catch (e) {
+          if (window.console) console.error(e);
+          mapFail('The map couldn’t start. Technical detail: ' + String(e && e.message ? e.message : e).slice(0, 160) + '. If this page is open inside a preview window, open it on your own site instead.');
+          return;
+        }
+        map.touchZoomRotate.disableRotation();
+        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+        map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: 'metric' }), 'bottom-left');
+        map.on('load', function () {
+          var ic = drawFox(64).getContext('2d').getImageData(0, 0, 64, 64);
+          map.addImage('fox-head', ic, { pixelRatio: 2 });
+          map.addSource('sightings', { type: 'geojson', data: emptyFC() });
+          map.addLayer({
+            id: 'dots-normal', type: 'circle', source: 'sightings', filter: ['all', ['==', ['get', 'sad'], 0], ['==', ['get', 'mine'], 0]],
+            paint: { 'circle-radius': 6, 'circle-color': ORANGE, 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff' }
+          });
+          map.addLayer({
+            id: 'dots-sad', type: 'circle', source: 'sightings', filter: ['==', ['get', 'sad'], 1],
+            paint: { 'circle-radius': 5, 'circle-color': GREY, 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff' },
+            layout: { visibility: sadVisible ? 'visible' : 'none' }
+          });
+          map.addLayer({
+            id: 'mine-heads', type: 'symbol', source: 'sightings', filter: ['all', ['==', ['get', 'sad'], 0], ['==', ['get', 'mine'], 1]],
+            layout: { 'icon-image': 'fox-head', 'icon-size': 1, 'icon-allow-overlap': true, 'icon-ignore-placement': true }
+          });
+          map.addLayer({
+            id: 'sel-ring', type: 'circle', source: 'sightings', filter: ['==', ['get', 'id'], ''],
+            paint: { 'circle-radius': 14, 'circle-opacity': 0, 'circle-stroke-width': 3, 'circle-stroke-color': '#16212B' }
+          });
+          map.addSource('pinring', { type: 'geojson', data: emptyFC() });
+          map.addLayer({ id: 'pinring-fill', type: 'fill', source: 'pinring', paint: { 'fill-color': FOXCOL, 'fill-opacity': 0.25 } });
+          map.addLayer({ id: 'pinring-line', type: 'line', source: 'pinring', paint: { 'line-color': FOXCOL, 'line-width': 2 } });
+          ['dots-normal', 'dots-sad', 'mine-heads'].forEach(function (l) {
+            map.on('mousemove', l, function () { map.getCanvas().style.cursor = 'pointer' });
+            map.on('mouseleave', l, function () { map.getCanvas().style.cursor = '' });
+          });
+          mapReady = true; syncSightings(); syncPin();
+        });
+        map.on('click', onMapClick);
+        map.on('zoomend', updateReadout);
+        map.on('error', function () { if (!mapReady) mapFail('The map couldn’t load. Check your connection and reload the page.') });
+      }
+      function onMapClick(e) {
+        var t = e.originalEvent && e.originalEvent.target;
+        if (t && t.closest && t.closest('.pinmarker')) return;
+        if (mapReady) {
+          var f = map.queryRenderedFeatures([[e.point.x - 10, e.point.y - 10], [e.point.x + 10, e.point.y + 10]], { layers: ['dots-normal', 'dots-sad', 'mine-heads'] });
+          if (f.length) { selectSighting(f[0].properties.id, false); return }
+        }
+        setPin(e.lngLat.lat, e.lngLat.lng);
+      }
+      function flyTo(lat, lng, z) { if (map) map.flyTo({ center: [lng, lat], zoom: z || map.getZoom(), duration: 900 }) }
+      function setPin(lat, lng) {
+        pin = { lat: Math.round(lat * 1e5) / 1e5, lng: Math.round(lng * 1e5) / 1e5 };
+        $('errLoc').textContent = '';
+        closePopup(); syncPin(); updateReadout();
+      }
+      function updateReadout() {
+        var c = $('coords'), h = $('pinhint'), s = $('locSummary');
+        if (!pin) {
+          c.textContent = 'No pin yet';
+          h.textContent = 'Tap the map where you saw the fox. Zoom in to street level for a pin within about 5 m.';
+          s.textContent = 'Drop a pin on the map. The ring around it shows roughly 5 m.';
+          return;
+        }
+        var t = pin.lat.toFixed(5) + ', ' + pin.lng.toFixed(5);
+        c.textContent = t; s.textContent = 'Pin placed at ' + t + (inLondon(pin.lat, pin.lng) ? '.' : ' (outside Greater London).');
+        var z = map ? map.getZoom() : 0;
+        h.textContent = z < 17 ? 'Zoom in closer to place the pin more precisely, then drag it to fine-tune.' : 'The ring shows about 5 m around your pin. Drag the pin or tap again to move it.';
+      }
+      $('centrePin').onclick = function () { if (!map) return; var c = map.getCenter(); setPin(c.lat, c.lng) };
+      $('allLondon').onclick = function () { if (map) map.fitBounds([[-0.38, 51.33], [0.22, 51.67]], { padding: 20, duration: 700 }) };
+      $('showSad').onchange = function () {
+        sadVisible = this.checked;
+        if (mapReady) map.setLayoutProperty('dots-sad', 'visibility', sadVisible ? 'visible' : 'none');
+        if (!sadVisible && selectedId) { var it = records.filter(function (r) { return r.id === selectedId })[0]; if (it && it.sad) closePopup() }
+      };
+
+      /* jump list and postcode finder (postcodes.io: free, no key) */
+      LANDMARKS.forEach(function (p, i) { var o = document.createElement('option'); o.value = i; o.textContent = p[0]; $('jump').appendChild(o) });
+      $('jump').onchange = function () { var p = LANDMARKS[+this.value]; if (p) flyTo(p[1], p[2], p[3]) };
+      var POSTCODE_RE = /^[A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2}$/, OUTCODE_RE = /^[A-Z]{1,2}[0-9][A-Z0-9]?$/;
+      function pcSay(msg, bad) { var m = $('pcMsg'); m.textContent = msg; m.hidden = !msg; m.style.color = bad ? 'var(--danger)' : ''; $('errLoc').textContent = '' }
+      function findPostcode() {
+        var raw = $('pcIn').value.trim().toUpperCase().replace(/\s+/g, ' ');
+        if (!raw) { pcSay('Type a postcode first, for example SW1A 1AA.', true); return }
+        var isFull = POSTCODE_RE.test(raw), isOut = !isFull && OUTCODE_RE.test(raw);
+        if (!isFull && !isOut) { pcSay('That doesn’t look like a UK postcode. Try something like SE1 9SG.', true); return }
+        var url = 'https://api.postcodes.io/' + (isFull ? 'postcodes/' : 'outcodes/') + encodeURIComponent(raw.replace(/\s/g, ''));
+        var btn = $('pcGo'); btn.disabled = true; btn.textContent = 'Finding…'; pcSay('');
+        var ctl = window.AbortController ? new AbortController() : null, timer = setTimeout(function () { if (ctl) ctl.abort() }, 8000);
+        fetch(url, ctl ? { signal: ctl.signal } : {}).then(function (r) {
+          if (r.status === 404) throw new Error('notfound');
+          if (!r.ok) throw new Error('http');
+          return r.json();
+        }).then(function (j) {
+          var d = j && j.result, lat = d && +d.latitude, lng = d && +d.longitude;
+          if (!d || !isFinite(lat) || !isFinite(lng)) throw new Error('notfound');
+          if (!inLondon(lat, lng)) { pcSay('That postcode is outside Greater London.', true); return }
+          flyTo(lat, lng, isFull ? 17 : 14);
+          pcSay('Showing ' + (d.postcode || d.outcode || raw) + '. Now tap the map where you saw the fox.');
+        }).catch(function (e) {
+          pcSay(e && e.message === 'notfound' ? 'We couldn’t find that postcode. Check it and try again.' : 'Couldn’t reach the postcode service. Check your connection and try again, or use the place list or the map.', true);
+        }).then(function () { clearTimeout(timer); btn.disabled = false; btn.textContent = 'Find' });
+      }
+      $('pcGo').onclick = findPostcode;
+      $('pcIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); findPostcode() } });
+
+      /* ---------- sighting details (sad events hidden by default) ---------- */
+      function buildDetails(it) {
+        var box = el('div', 'det');
+        var w = el('div', 'when', fmtWhen(it.ts)); var r = rel(it.ts); if (r) w.appendChild(el('span', 'rel', '  ·  ' + r));
+        box.appendChild(w);
+        var body = el('div', 'detbody');
+        function fill() {
+          body.textContent = '';
+          if (it.behaviours.length) { var bw = el('div', 'beh'); it.behaviours.forEach(function (x) { bw.appendChild(el('span', '', x)) }); body.appendChild(bw) }
+          if (it.other) body.appendChild(el('p', '', it.other));
+          if (it.desc) body.appendChild(el('p', '', it.desc));
+          if (it.hasPhoto) {
+            var pb = el('button', 'btn small', it.sad ? 'Show photo (may be upsetting)' : 'Show photo'); pb.type = 'button';
+            pb.onclick = function () {
+              pb.disabled = true; pb.textContent = 'Loading…';
+              getPhoto(it.id).then(function (src) {
+                if (!src) throw new Error('none');
+                var im = document.createElement('img'); im.src = src; im.alt = 'Photo of the fox sighted ' + fmtWhen(it.ts); pb.replaceWith(im);
+              }).catch(function () { pb.disabled = false; pb.textContent = 'Couldn’t load the photo. Try again' });
+            };
+            body.appendChild(pb);
+          }
+        }
+        if (it.sad) {
+          var note = el('div', 'sadnote', 'A sad event was recorded here.');
+          var btn = el('button', 'btn small', 'Show details'); btn.type = 'button';
+          btn.onclick = function () { note.remove(); btn.remove(); fill() };
+          box.appendChild(note); box.appendChild(btn);
+        } else fill();
+        box.appendChild(body);
+        return box;
+      }
+      function closePopup() { selectedId = null; $('popup').hidden = true; syncSightings() }
+      function selectSighting(id, fly) {
+        var it = records.filter(function (x) { return x.id === id })[0]; if (!it) return;
+        selectedId = id;
+        if (fly) flyTo(it.lat, it.lng, Math.max(map ? map.getZoom() : 17, 17));
+        var p = $('popup'); p.textContent = '';
+        var x = el('button', 'x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Close'); x.onclick = closePopup; p.appendChild(x);
+        if (mine[it.id]) p.appendChild(el('div', 'hint', 'Logged by you on this device'));
+        p.appendChild(buildDetails(it));
+        p.hidden = false; syncSightings();
+      }
+
+      /* ---------- views: last 7 days / monthly archive ---------- */
+      function viewRange() {
+        if (view.mode === 'live') { var n = Date.now(); return { from: n - 7 * DAY, to: n + 3600e3, label: 'the last 7 days', slug: 'last-7-days-' + new Date().toISOString().slice(0, 10) } }
+        var o = MONTHS[view.idx];
+        return { from: new Date(o.y, o.m, 1).getTime(), to: new Date(o.y, o.m + 1, 1).getTime(), label: o.label + (o.current ? ' so far' : ''), slug: o.y + '-' + pad(o.m + 1) };
+      }
+      function setMsg(t, bad, retry) {
+        var m = $('dataMsg'); m.textContent = t || ''; m.className = 'datamsg' + (bad ? ' bad' : ''); m.hidden = !t;
+        if (t && retry) { var b = el('button', 'btn small', 'Try again'); b.type = 'button'; b.style.marginLeft = '8px'; b.onclick = loadView; m.appendChild(b) }
+      }
+      function loadView() {
+        var tok = ++loadToken, rg = viewRange();
+        setMsg('Loading sightings…');
+        fetchRange(rg.from, rg.to).then(function (rows) {
+          if (tok !== loadToken) return;
+          records = rows; shown = PAGE; selectedId = null; $('popup').hidden = true;
+          setMsg(''); refresh();
+        }).catch(function () {
+          if (tok !== loadToken) return;
+          setMsg('Couldn’t load sightings. Check your connection.', true, true);
+        });
+      }
+      function setMode(mode) {
+        view.mode = mode;
+        $('tabLive').setAttribute('aria-pressed', mode === 'live');
+        $('tabArchive').setAttribute('aria-pressed', mode === 'archive');
+        $('monthSel').hidden = mode !== 'archive';
+        loadView();
+      }
+      $('tabLive').onclick = function () { setMode('live') };
+      $('tabArchive').onclick = function () { setMode('archive') };
+      MONTHS.forEach(function (o, i) { var op = document.createElement('option'); op.value = i; op.textContent = o.label + (o.current ? ' (so far)' : ''); $('monthSel').appendChild(op) });
+      $('monthSel').onchange = function () { view.idx = +this.value; loadView() };
+
+      /* ---------- render ---------- */
+      function refresh() {
+        var rg = viewRange();
+        $('total').textContent = records.length;
+        $('totalLabel').textContent = view.mode === 'live' ? (records.length === 1 ? 'sighting in the last 7 days' : 'sightings in the last 7 days') : (records.length === 1 ? 'sighting in ' : 'sightings in ') + rg.label;
+        $('listTitle').textContent = view.mode === 'live' ? 'Last 7 days' : MONTHS[view.idx].label;
+        var note = $('listNote');
+        if (view.mode === 'live') note.textContent = 'Newest first. Older sightings move to the monthly archive.';
+        else note.textContent = 'Newest first. This month is kept until ' + fmtDate(MONTHS[view.idx].expires) + ', then deleted. Download it before then to keep it.';
+        var list = $('list'); list.textContent = '';
+        if (!records.length) { var e = el('div', 'card empty', view.mode === 'live' ? 'No sightings in the last 7 days. Be the first to log a fox.' : 'No sightings recorded for this month.'); e.style.gridColumn = '1/-1'; list.appendChild(e) }
+        records.slice(0, shown).forEach(function (it) {
+          var c = el('article', 'card item');
+          if (mine[it.id]) c.appendChild(el('div', 'hint', 'Logged by you on this device'));
+          c.appendChild(buildDetails(it));
+          var f = el('div', 'foot');
+          f.appendChild(el('span', 'hint', it.lat.toFixed(5) + ', ' + it.lng.toFixed(5)));
+          var bt = el('button', 'btn small', 'Show on map'); bt.type = 'button';
+          bt.onclick = function () {
+            if (it.sad && !sadVisible) { $('showSad').checked = true; $('showSad').onchange.call($('showSad')) }
+            selectSighting(it.id, true); $('mapwrap').scrollIntoView({ block: 'center', behavior: 'smooth' });
+          };
+          f.appendChild(bt); c.appendChild(f); list.appendChild(c);
+        });
+        $('moreBtn').hidden = records.length <= shown;
+        $('dl').hidden = !records.length;
+        syncSightings();
+      }
+      $('moreBtn').onclick = function () { shown += PAGE; refresh() };
+
+      /* ---------- downloads ---------- */
+      function saveBlob(blob, name) {
+        var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+        document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href) }, 1500);
+      }
+      function behText(it) { var b = it.behaviours.slice(); if (it.other) b.push(it.other); return b.join('; ') }
+      $('dlCsv').onclick = function () {
+        var q = function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"' };
+        var rows = [['sighted_at', 'latitude', 'longitude', 'behaviours', 'other_text', 'description', 'sad_event', 'has_photo']];
+        records.forEach(function (it) {
+          rows.push([new Date(it.ts).toISOString(), it.lat, it.lng, it.behaviours.join('; '), it.other, it.desc, it.sad ? 'yes' : 'no', it.hasPhoto ? 'yes' : 'no']);
+        });
+        saveBlob(new Blob([rows.map(function (r) { return r.map(q).join(',') }).join('\r\n')], { type: 'text/csv' }), 'fox-log-london-' + viewRange().slug + '.csv');
+      };
+      $('dlGeo').onclick = function () {
+        var fc = {
+          type: 'FeatureCollection', features: records.map(function (it) {
+            return {
+              type: 'Feature', geometry: { type: 'Point', coordinates: [it.lng, it.lat] },
+              properties: { sighted_at: new Date(it.ts).toISOString(), behaviours: it.behaviours, other_text: it.other, description: it.desc, sad_event: it.sad, has_photo: it.hasPhoto }
+            };
+          })
+        };
+        saveBlob(new Blob([JSON.stringify(fc)], { type: 'application/geo+json' }), 'fox-log-london-' + viewRange().slug + '.geojson');
+      };
+      $('dlPng').onclick = function () {
+        if (!map || !mapReady) { return }
+        var src = map.getCanvas(), s = src.width / Math.max(1, map.getContainer().clientWidth), rg = viewRange();
+        var head = Math.round(58 * s), foot = Math.round(28 * s), out = document.createElement('canvas');
+        out.width = src.width; out.height = src.height + head + foot;
+        var x = out.getContext('2d');
+        x.fillStyle = '#ffffff'; x.fillRect(0, 0, out.width, out.height);
+        x.fillStyle = '#16212B'; x.textBaseline = 'top';
+        x.font = '700 ' + Math.round(20 * s) + 'px sans-serif';
+        x.fillText('Fox Log London · ' + rg.label + ' · ' + records.length + ' sighting' + (records.length === 1 ? '' : 's'), Math.round(12 * s), Math.round(8 * s));
+        x.font = '400 ' + Math.round(13 * s) + 'px sans-serif'; x.fillStyle = '#56636E';
+        x.fillText('Orange dots: sightings. Grey dots: sad events. Fox heads: logged by the person who made this image.', Math.round(12 * s), Math.round(34 * s));
+        try { x.drawImage(src, 0, head) } catch (e) { }
+        x.fillStyle = '#16212B'; x.font = '400 ' + Math.round(12 * s) + 'px sans-serif';
+        x.fillText('© OpenStreetMap contributors · Map by OpenFreeMap · Fox Log London', Math.round(12 * s), head + src.height + Math.round(7 * s));
+        out.toBlob(function (b) { if (b) saveBlob(b, 'fox-log-london-' + rg.slug + '.png') }, 'image/png');
+      };
+
+      /* ---------- form ---------- */
+      BEHAVIOURS.forEach(function (b) {
+        var l = el('label', 'chip'), inp = document.createElement('input');
+        inp.type = 'checkbox'; inp.value = b; inp.name = 'beh';
+        l.appendChild(inp); l.appendChild(el('span', '', b)); $('behChips').appendChild(l);
+      });
+      $('behChips').addEventListener('change', function () {
+        var on = $('behChips').querySelector('input[value="Other"]').checked;
+        $('otherWrap').hidden = !on; $('errBeh').textContent = '';
+        if (on) $('otherBeh').focus();
+      });
+      $('sadChk').addEventListener('change', function () { sadTouched = true });
+      $('otherBeh').addEventListener('input', function () {
+        if (!sadTouched && SAD_RE.test(this.value)) $('sadChk').checked = true;
+      });
+      DESC_QUICK.forEach(function (t) {
+        var w = el('span', 'chip add'), b = el('button', '', '+ ' + t); b.type = 'button';
+        b.onclick = function () {
+          var d = $('desc'), v = d.value.trim();
+          if (v.toLowerCase().indexOf(t.toLowerCase()) > -1) return;
+          d.value = (v ? (v.replace(/[.,;\s]+$/, '') + ', ' + t.toLowerCase()) : t).slice(0, 400);
+        };
+        w.appendChild(b); $('descChips').appendChild(w);
+      });
+      function setNow() {
+        $('when').value = toLocalInput(new Date());
+        $('when').max = toLocalInput(new Date(Date.now() + 60000));
+        $('when').min = toLocalInput(new Date(Date.now() - 30 * DAY));
+      }
+      $('nowBtn').onclick = setNow; setNow();
+
+      $('photoBtn').onclick = function () { $('photoIn').click() };
+      $('photoRm').onclick = function () { photoData = ''; $('photoIn').value = ''; $('photoPrev').hidden = true; $('photoRm').hidden = true; $('errPhoto').textContent = '' };
+      $('photoIn').addEventListener('change', function () {
+        var f = this.files && this.files[0]; if (!f) return;
+        $('errPhoto').textContent = '';
+        if (!/^image\//.test(f.type)) { $('errPhoto').textContent = 'That file isn’t an image.'; return }
+        var url = URL.createObjectURL(f), im = new Image();
+        im.onload = function () {
+          var q = 0.75, max = 800, out = '';
+          for (var tries = 0; tries < 7; tries++) {
+            var sc = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight));
+            var c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.naturalWidth * sc)); c.height = Math.max(1, Math.round(im.naturalHeight * sc));
+            var cc = c.getContext('2d'); cc.fillStyle = '#fff'; cc.fillRect(0, 0, c.width, c.height); cc.drawImage(im, 0, 0, c.width, c.height);
+            out = c.toDataURL('image/jpeg', q);
+            if (out.length < 100000) break;
+            q = Math.max(0.45, q - 0.08); max = Math.round(max * 0.85);
+          }
+          URL.revokeObjectURL(url);
+          if (out.length >= 140000) { $('errPhoto').textContent = 'That photo is too detailed to shrink enough. Try another.'; return }
+          photoData = out; $('photoPrev').src = out; $('photoPrev').hidden = false; $('photoRm').hidden = false;
+        };
+        im.onerror = function () { URL.revokeObjectURL(url); $('errPhoto').textContent = 'Couldn’t read that image. Try a JPEG or PNG.' };
+        im.src = url;
+      });
+
+      /* submit */
+      $('form').addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var ok = true, st = $('status'); st.textContent = ''; st.className = 'status';
+        ['errLoc', 'errWhen', 'errBeh'].forEach(function (i) { $(i).textContent = '' });
+        if (!pin) { $('errLoc').textContent = 'Please drop a pin on the map first.'; ok = false }
+        else if (!inLondon(pin.lat, pin.lng)) { $('errLoc').textContent = 'This log is for Greater London. Please move the pin.'; ok = false }
+        var ts = new Date($('when').value).getTime();
+        if (!isFinite(ts)) { $('errWhen').textContent = 'Please choose when you saw the fox.'; ok = false }
+        else if (ts > Date.now() + 120000) { $('errWhen').textContent = 'That time is in the future.'; ok = false }
+        else if (ts < Date.now() - 30 * DAY) { $('errWhen').textContent = 'Please log sightings from the last 30 days.'; ok = false }
+        var beh = Array.prototype.map.call($('behChips').querySelectorAll('input:checked'), function (i) { return i.value });
+        var hasOther = beh.indexOf('Other') > -1, other = hasOther ? $('otherBeh').value.trim() : '', chosen = beh.filter(function (b) { return b !== 'Other' });
+        if (!beh.length) { $('errBeh').textContent = 'Choose at least one behaviour.'; ok = false }
+        else if (hasOther && !other && !chosen.length) { $('errBeh').textContent = 'Please tell us what you saw, or pick another option.'; ok = false }
+        if (!ok) { var first = document.querySelector('.err:not(:empty)'); if (first) first.scrollIntoView({ block: 'center', behavior: 'smooth' }); return }
+
+        if ($('website').value) { st.textContent = 'Fox logged. Thank you!'; st.className = 'status ok'; return }   /* honeypot */
+
+        var desc = $('desc').value.trim().slice(0, 400), sad = hasOther && $('sadChk').checked, autoNote = '';
+        if (!sad && (SAD_RE.test(other) || SAD_RE.test(desc))) { sad = true; autoNote = ' We marked it as a sad event so the details stay hidden unless someone chooses to see them.' }
+        var rec = { ts: ts, lat: pin.lat, lng: pin.lng, behaviours: chosen, other: other, desc: desc, sad: sad, photo: photoData };
+        var btn = $('submit'); btn.disabled = true; btn.textContent = 'Saving…';
+        addRecord(rec).then(function (id) {
+          if (id) { mine[String(id)] = 1; saveMine() }
+          var rg = viewRange(), msg = 'Fox logged. Thank you!' + autoNote;
+          var inView = ts >= rg.from && ts < rg.to;
+          if (view.mode === 'live' && !inView) { var d = new Date(ts); msg += ' It’s older than 7 days, so you’ll find it in the ' + d.toLocaleString('en-GB', { month: 'long', year: 'numeric' }) + ' archive.' }
+          st.textContent = msg; st.className = 'status ok';
+          resetForm();
+          if (inView) { selectedId = null; loadView() }
+        }).catch(function (e) {
+          st.textContent = (e && e.message === 'storage') ? 'Couldn’t save on this device (storage is full or blocked). Try removing the photo.' : 'Couldn’t save your sighting. Check your connection and try again.';
+          st.className = 'status bad';
+        }).then(function () { btn.disabled = false; btn.textContent = 'Log this fox' });
+      });
+      function resetForm() {
+        pin = null; syncPin(); updateReadout();
+        $('behChips').querySelectorAll('input').forEach(function (i) { i.checked = false });
+        $('otherBeh').value = ''; $('sadChk').checked = false; sadTouched = false; $('otherWrap').hidden = true; $('desc').value = '';
+        $('photoRm').onclick(); setNow();
+      }
+
+      /* ---------- start ---------- */
+      (function () {
+        var m = $('mode');
+        if (LIVE) { m.appendChild(el('strong', '', 'Public log. ')); m.appendChild(document.createTextNode('Sightings you add are visible to everyone. The map shows the last 7 days, and past months are in the archive for 12 months.')) }
+        else { m.className = 'mode demo'; m.appendChild(el('strong', '', 'Demo mode. ')); m.appendChild(document.createTextNode('Sightings are saved on this device only. To make the log public, add your Supabase details at the top of the script.')) }
+      })();
+      initMap();
+      loadView();
+    })();
+  </script>
+</body>
+
+</html>
